@@ -20,7 +20,7 @@ module "cdn" {
   name                      = "crown-jewel-test"
   environment               = "sandbox"
   label_order               = ["namespace", "name", "environment"]
-  aliases                   = ["safeatwork-pwa.tooling.test.smp-paas.com"]
+  aliases                   = ["crown-jewel-test.tooling.test.smp-paas.com"]
   parent_zone_id            = "ZZN2DM19IQLNS"
   dns_alias_enabled         = true
   web_acl_id                = ""
