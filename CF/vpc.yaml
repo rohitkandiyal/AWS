@@ -1,0 +1,201 @@
+AWSTemplateFormatVersion: 2010-09-09
+# This CloudFormation template deploys a basic VPC / Network.
+Resources:
+  #########################################################################################################
+  # VPC
+  KongVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 192.167.252.0/22
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: KongDemo
+
+
+
+  # IGW - A VPC doesn;t have a default IGW as it has main route table and SG
+  KongVPCinternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: KongDemo
+  gatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref KongVPC
+      InternetGatewayId: !Ref KongVPCinternetGateway
+
+
+
+  # Route tables belongs to VPC and then we associate them to subnets.
+
+  # Using IGW by creating a non default route table with route to IGW and then this route table can be assigned to public subnet.
+  KongVPCpublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref KongVPC
+      Tags:
+        - Key: Name
+          Value: KongDemo
+  route1:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref KongVPCpublicRouteTable
+      GatewayId: !Ref KongVPCinternetGateway
+    DependsOn: gatewayAttachment
+
+# Internet access to Private instances
+# Using NGW by creating a non default route table with route to NGW and then this route table can be assigned to private subnet.
+  KongVPCprivateRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref KongVPC
+      Tags:
+        - Key: Name
+          Value: KongDemo
+# Commented as CF fails... Do this manually as of now.
+#  route2:
+#    Type: 'AWS::EC2::Route'
+#    Properties:
+#      DestinationCidrBlock: 0.0.0.0/0
+#      RouteTableId: !Ref KongVPCprivateRouteTable
+#      GatewayId: !Ref NATGatewayKongPublicSubnetA
+#    DependsOn: NATGatewayKongPublicSubnetA
+
+    # we need to create a NAT GW in public subnet and it is aligned to subnets and not VPC unlike IGW
+    # creating only one NAT GW in one public subnet though can be in each public subnet for redundancy but doubt there(check notes)
+  NATGatewayKongPublicSubnetA:
+    DependsOn: gatewayAttachment        # NGW works if VPC has IGW - NAT translates and forward traffic to IGW.
+    Type: 'AWS::EC2::NatGateway'
+    Properties:
+      AllocationId: !GetAtt             # we need EIP
+        - EIPNATGatewayKongPublicSubnetA
+        - AllocationId
+      SubnetId: !Ref KongPublicSubnetA
+  # NAT also needs EIP
+  EIPNATGatewayKongPublicSubnetA:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: myVPC
+
+
+
+  #########################################################################################################
+  #Public subnets
+  KongPublicSubnetA:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      CidrBlock: 192.167.253.0/26
+      AvailabilityZone: eu-central-1a
+      MapPublicIpOnLaunch: 'false'
+      VpcId: !Ref KongVPC
+      Tags:
+        - Key: Name
+          Value: KongDemo
+  KongPublicSubnetB:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      CidrBlock: 192.167.253.64/26
+      AvailabilityZone: eu-central-1b
+      MapPublicIpOnLaunch: 'false'
+      VpcId: !Ref KongVPC
+      Tags:
+        - Key: Name
+          Value: KongDemo
+  KongPublicSubnetC:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      CidrBlock: 192.167.253.128/26
+      AvailabilityZone: eu-central-1c
+      MapPublicIpOnLaunch: 'false'
+      VpcId: !Ref KongVPC
+      Tags:
+        - Key: Name
+          Value: KongDemo
+
+  # Initially all the subnets have main route table of VPC associated.
+  # Now we need our public subnet's instances to have internet access(both sides)
+  # So we need to use created IGW for VPC via public route table.
+
+  # associate public route table(with IG) to public subnets:
+
+  RouteTableAssociationSubnetA:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref KongPublicSubnetA
+      RouteTableId: !Ref KongVPCpublicRouteTable
+  RouteTableAssociationSubnetB:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref KongPublicSubnetB
+      RouteTableId: !Ref KongVPCpublicRouteTable
+  RouteTableAssociationSubnetC:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref KongPublicSubnetC
+      RouteTableId: !Ref KongVPCpublicRouteTable
+
+
+
+  #############################################################################################################
+  #Private subnets
+  KongPrivateSubnetA:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      CidrBlock: 192.167.254.0/26
+      AvailabilityZone: eu-central-1a
+      MapPublicIpOnLaunch: 'false'
+      VpcId: !Ref KongVPC
+      Tags:
+        - Key: Name
+          Value: KongDemo
+  KongPrivateSubnetB:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      CidrBlock: 192.167.254.64/26
+      AvailabilityZone: eu-central-1b
+      MapPublicIpOnLaunch: 'false'
+      VpcId: !Ref KongVPC
+      Tags:
+        - Key: Name
+          Value: KongDemo
+  KongPrivateSubnetC:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      CidrBlock: 192.167.254.128/26
+      AvailabilityZone: eu-central-1c
+      MapPublicIpOnLaunch: 'false'
+      VpcId: !Ref KongVPC
+      Tags:
+        - Key: Name
+          Value: KongDemo
+
+  # Initially all the subnets have main route table of VPC associated.
+  # Now we need our public subnet's instances to have internet access(both sides)
+  # So we need to use created IGW for VPC via public route table.
+
+  # associate public route table(with IG) to public subnets:
+
+  RouteTableAssociationSubnetPrivateA:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref KongPrivateSubnetA
+      RouteTableId: !Ref KongVPCprivateRouteTable
+  RouteTableAssociationSubnetPrivateB:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref KongPrivateSubnetB
+      RouteTableId: !Ref KongVPCprivateRouteTable
+  RouteTableAssociationSubnetPrivateC:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref KongPrivateSubnetC
+      RouteTableId: !Ref KongVPCprivateRouteTable
+
+
+
+
