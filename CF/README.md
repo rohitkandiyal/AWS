@@ -12,4 +12,9 @@ First Delete NAT GW route from private RT and then:
 
 ```aws cloudformation delete-stack --stack-name kong-demo-vpc```
 
+## EC2 CF Points
+
+To create:
+
+```aws cloudformation deploy --template-file 2-ec2.yaml --stack-name kong-demo-ec2```
 

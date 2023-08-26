@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: 2010-09-09
+# This CloudFormation template deploys a EC2 / SG / ASG / ELB.
+Resources:
+  PublicInstanceSG:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Security Group for Public Instances
+      VpcId: !ImportValue 'kong-demo-vpc-KongVPCID'
+      GroupName: KongDemo-PublicInstanceSG
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: KongDemo
+
+  PrivateInstanceSG:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Security Group for Private Instances
+      VpcId: !ImportValue 'kong-demo-vpc-KongVPCID'
+      GroupName: KongDemo-PrivateInstanceSG
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: KongDemo
+
+# commented as public instance can't get stabilized in smp-sandbox accnt- seems sthing accnt specific as works in eepairing accnt.
+#  PublicInstance:
+#    Type: AWS::EC2::Instance
+#    Properties:
+#      SubnetId: !ImportValue 'kong-demo-vpc-PublicSubnetAID'
+#      ImageId: ami-0c4c4bd6cf0c5fe52
+#      InstanceType: t2.micro
+#      KeyName: smp-rohit                # this has to be created manually not via CF.
+#      SecurityGroupIds:
+#        - !Ref PublicInstanceSG
+#      UserData:
+#        Fn::Base64:
+#          !Sub |
+#          #!/bin/bash
+#          echo "hello"
+#          sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+#          sudo systemctl start amazon-ssm-agent
+#          sudo systemctl enable amazon-ssm-agent
+
+  PrivateInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      SubnetId: !ImportValue 'kong-demo-vpc-PrivateSubnetAID'
+      ImageId: ami-0c4c4bd6cf0c5fe52
+      InstanceType: t2.micro
+      KeyName: smp-rohit                 # this has to be created manually not via CF.
+      SecurityGroupIds:
+        - !Ref PrivateInstanceSG
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash
+          sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+          sudo systemctl start amazon-ssm-agent
+          sudo systemctl enable amazon-ssm-agent
+      IamInstanceProfile: jenkins-master-role-prod-instance-profile   # added to make ssm connect work for ssh
+
+
+
+

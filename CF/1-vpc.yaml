@@ -13,8 +13,6 @@ Resources:
         - Key: Name
           Value: KongDemo
 
-
-
   # IGW - A VPC doesn;t have a default IGW as it has main route table and SG
   KongVPCinternetGateway:
     Type: 'AWS::EC2::InternetGateway'
@@ -195,6 +193,30 @@ Resources:
     Properties:
       SubnetId: !Ref KongPrivateSubnetC
       RouteTableId: !Ref KongVPCprivateRouteTable
+
+Outputs:
+  KongDemoVPCId:
+    Description: The vpc ID to of Kong Demo VPC
+    Value:
+      Ref: KongVPC
+    Export:
+      Name:
+        'Fn::Sub': '${AWS::StackName}-KongVPCID'
+  PublicSubnetA:
+    Description: The subnet ID of public subnet A
+    Value:
+      Ref: KongPublicSubnetA
+    Export:
+      Name:
+        'Fn::Sub': '${AWS::StackName}-PublicSubnetAID'
+  PrivateSubnetA:
+    Description: The subnet ID of private subnet A
+    Value:
+      Ref: KongPrivateSubnetA
+    Export:
+      Name:
+        'Fn::Sub': '${AWS::StackName}-PrivateSubnetAID'
+
 
 
 
