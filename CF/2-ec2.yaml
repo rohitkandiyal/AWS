@@ -90,7 +90,7 @@ Resources:
   PrivateInstanceEFSSetup:
     Type: AWS::EC2::Instance
     Properties:
-      SubnetId: !ImportValue 'kong-demo-vpc-PrivateSubnetAID'
+      SubnetId: !ImportValue 'kong-demo-vpc-PrivateSubnetBID'
       ImageId: ami-0c4c4bd6cf0c5fe52
       InstanceType: t2.micro
       KeyName: smp-rohit                 # this has to be created manually not via CF.
