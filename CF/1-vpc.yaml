@@ -216,6 +216,13 @@ Outputs:
     Export:
       Name:
         'Fn::Sub': '${AWS::StackName}-PrivateSubnetAID'
+  PrivateSubnetB:
+    Description: The subnet ID of private subnet B
+    Value:
+      Ref: KongPrivateSubnetB
+    Export:
+      Name:
+        'Fn::Sub': '${AWS::StackName}-PrivateSubnetBID'
 
 
 

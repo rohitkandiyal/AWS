@@ -83,5 +83,29 @@ Resources:
       IamInstanceProfile: jenkins-master-role-prod-instance-profile   # added to make ssm connect work for ssh
 
 
+########################################################################################################################
+
+# EFS Setup: Another EC2 in diff AZ(subnet); EFS; and then mount it to both EC2s(regular and new)
+
+  PrivateInstanceEFSSetup:
+    Type: AWS::EC2::Instance
+    Properties:
+      SubnetId: !ImportValue 'kong-demo-vpc-PrivateSubnetAID'
+      ImageId: ami-0c4c4bd6cf0c5fe52
+      InstanceType: t2.micro
+      KeyName: smp-rohit                 # this has to be created manually not via CF.
+      SecurityGroupIds:
+        - !Ref PrivateInstanceSG
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash
+          sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+          sudo systemctl start amazon-ssm-agent
+          sudo systemctl enable amazon-ssm-agent
+      IamInstanceProfile: jenkins-master-role-prod-instance-profile
+
+
+
 
 
