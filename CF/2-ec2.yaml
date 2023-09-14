@@ -81,77 +81,77 @@ Resources:
           sudo systemctl start amazon-ssm-agent
           sudo systemctl enable amazon-ssm-agent
           # EFS mount command
-          sudo mkdir /efs
-          sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-03bdeac99bc039865.efs.eu-central-1.amazonaws.com:/ /efs
+          #sudo mkdir /efs
+          #sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-03bdeac99bc039865.efs.eu-central-1.amazonaws.com:/ /efs
       IamInstanceProfile: jenkins-master-role-prod-instance-profile   # added to make ssm connect work for ssh
 
 
 ########################################################################################################################
 
-# EFS Setup: Another EC2 in diff AZ(subnet); EFS; and then mount it to both EC2s(regular and new)
+## EFS Setup: Another EC2 in diff AZ(subnet); EFS; and then mount it to both EC2s(regular and new)
+#
+#  PrivateInstanceEFSSetup:
+#    Type: AWS::EC2::Instance
+#    Properties:
+#      SubnetId: !ImportValue 'kong-demo-vpc-PrivateSubnetBID'
+#      ImageId: ami-0c4c4bd6cf0c5fe52
+#      InstanceType: t2.micro
+#      KeyName: smp-rohit                 # this has to be created manually not via CF.
+#      SecurityGroupIds:
+#        - !Ref PrivateInstanceSG
+#      UserData:
+#        Fn::Base64:
+#          !Sub |
+#          #!/bin/bash
+#          sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+#          sudo systemctl start amazon-ssm-agent
+#          sudo systemctl enable amazon-ssm-agent
+#          # EFS mount command
+#          sudo mkdir /efs
+#          sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-03bdeac99bc039865.efs.eu-central-1.amazonaws.com:/ /efs
+#      IamInstanceProfile: jenkins-master-role-prod-instance-profile
+#
+#  EFSVolume:
+#    Type: AWS::EFS::FileSystem
+#    Properties:
+#      Encrypted: true
+#      PerformanceMode: generalPurpose
+#      ThroughputMode: elastic
+#
+#  EFSMountTargetSecurityGroup:
+#    Type: 'AWS::EC2::SecurityGroup'
+#    Properties:
+#      GroupDescription: Security Group for EFS Mount Target
+#      VpcId: !ImportValue 'kong-demo-vpc-KongVPCID'
+#      GroupName: KongDemo-EFSMountTargetSG
+#      SecurityGroupIngress:
+#        - IpProtocol: tcp
+#          FromPort: 2049                # this port should be whitelisted to connect to efs(nfs). This is default NFS port.
+#          ToPort: 2049
+#          CidrIp: 0.0.0.0/0
+#
+## We need mount targets in all the AZs(subnets) in which EC2s are going to use this EFS
+#  EFSMountTargetSubnetA:
+#    Type: AWS::EFS::MountTarget
+#    Properties:
+#      FileSystemId:
+#        Ref: "EFSVolume"
+#      SubnetId: !ImportValue 'kong-demo-vpc-PrivateSubnetAID'
+#      SecurityGroups:
+#        - Ref: "EFSMountTargetSecurityGroup"
+#
+#  EFSMountTargetSubnetB:
+#    Type: AWS::EFS::MountTarget
+#    Properties:
+#      FileSystemId:
+#        Ref: "EFSVolume"
+#      SubnetId: !ImportValue 'kong-demo-vpc-PrivateSubnetBID'
+#      SecurityGroups:
+#        - Ref: "EFSMountTargetSecurityGroup"
+#
+## as we don't have mounttarget in subnet c so ec2s in eu-central-1c can't use this EFS.
 
-  PrivateInstanceEFSSetup:
-    Type: AWS::EC2::Instance
-    Properties:
-      SubnetId: !ImportValue 'kong-demo-vpc-PrivateSubnetBID'
-      ImageId: ami-0c4c4bd6cf0c5fe52
-      InstanceType: t2.micro
-      KeyName: smp-rohit                 # this has to be created manually not via CF.
-      SecurityGroupIds:
-        - !Ref PrivateInstanceSG
-      UserData:
-        Fn::Base64:
-          !Sub |
-          #!/bin/bash
-          sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
-          sudo systemctl start amazon-ssm-agent
-          sudo systemctl enable amazon-ssm-agent
-          # EFS mount command
-          sudo mkdir /efs
-          sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-03bdeac99bc039865.efs.eu-central-1.amazonaws.com:/ /efs
-      IamInstanceProfile: jenkins-master-role-prod-instance-profile
-
-  EFSVolume:
-    Type: AWS::EFS::FileSystem
-    Properties:
-      Encrypted: true
-      PerformanceMode: generalPurpose
-      ThroughputMode: elastic
-
-  EFSMountTargetSecurityGroup:
-    Type: 'AWS::EC2::SecurityGroup'
-    Properties:
-      GroupDescription: Security Group for EFS Mount Target
-      VpcId: !ImportValue 'kong-demo-vpc-KongVPCID'
-      GroupName: KongDemo-EFSMountTargetSG
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 2049                # this port should be whitelisted to connect to efs(nfs). This is default NFS port.
-          ToPort: 2049
-          CidrIp: 0.0.0.0/0
-
-# We need mount targets in all the AZs(subnets) in which EC2s are going to use this EFS
-  EFSMountTargetSubnetA:
-    Type: AWS::EFS::MountTarget
-    Properties:
-      FileSystemId:
-        Ref: "EFSVolume"
-      SubnetId: !ImportValue 'kong-demo-vpc-PrivateSubnetAID'
-      SecurityGroups:
-        - Ref: "EFSMountTargetSecurityGroup"
-
-  EFSMountTargetSubnetB:
-    Type: AWS::EFS::MountTarget
-    Properties:
-      FileSystemId:
-        Ref: "EFSVolume"
-      SubnetId: !ImportValue 'kong-demo-vpc-PrivateSubnetBID'
-      SecurityGroups:
-        - Ref: "EFSMountTargetSecurityGroup"
-
-# as we don't have mounttarget in subnet c so ec2s in eu-central-1c can't use this EFS.
-
-
+########################################################################################################################
 
 
 
