@@ -80,9 +80,17 @@ Resources:
           sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
           sudo systemctl start amazon-ssm-agent
           sudo systemctl enable amazon-ssm-agent
+          #################################################################
           # EFS mount command
           #sudo mkdir /efs
           #sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-03bdeac99bc039865.efs.eu-central-1.amazonaws.com:/ /efs
+          #################################################################
+          # to check o/p in URL(I used ELB as public IP on EC2 can't sustain in bcg sandbox)
+          yum update -y
+          yum install -y httpd
+          systemctl start httpd
+          systemctl enable httpd
+          echo "<h1>Hello World from $(hostname -f)</h1>" > /var/www/html/index.html
       IamInstanceProfile: jenkins-master-role-prod-instance-profile   # added to make ssm connect work for ssh
 
 
